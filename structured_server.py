@@ -1951,7 +1951,11 @@ def ar_decide_group(schema, sys_text, state_content, prefix=None, lead=""):
                 "tops": tops,
                 "policy": {"mode": "single", "why": "logprob reads are deterministic"},
             },
-            "timing": {"total_ms": (time.time() - started) * 1e3, "reads": len(reads)},
+            "timing": {
+                "total_ms": (time.time() - started) * 1e3,
+                "reads": len(reads),
+                "requests": len(reads),
+            },
             "thought": None,
             "prompt_tokens": prompt_tokens,
             "questions": diag_q,
@@ -2002,7 +2006,7 @@ def ar_read_span(schema, q, state_content, seed=0, question=None):
     if not isinstance(state_content, str):
         raise SchemaError("images: not available with --engine ar")
     started = time.time()
-    text = span_source(state_content)
+    text = span_source(state_content, schema)
     question = question or q["instructions"]
     sys_text = SPAN_SYSTEM.format(q=question, context=span_context(schema))
     base = chat_prompt_ids(sys_text, state_content) + enc("answer:")
@@ -2098,7 +2102,7 @@ def ar_read_spans(schema, q, state_content, seed=0):
     weakest token probability of the line as written."""
     if not isinstance(state_content, str):
         raise SchemaError("images: not available with --engine ar")
-    text = span_source(state_content)
+    text = span_source(state_content, schema)
     sys_text = SPAN_LIST_SYSTEM.format(
         q=q["instructions"], context=span_context(schema)
     )
@@ -2780,6 +2784,8 @@ def main():
     )
     ARGS = p.parse_args()
     ENGINE = ARGS.engine
+    if ENGINE == "ar" and (ARGS.constrained or ARGS.engine_samples):
+        p.error("--constrained and --engine-samples apply to --engine diffusion only")
     # An autoregressive read has no canvas; the template check just needs a bound.
     CANVAS_LEN = ARGS.canvas if ENGINE == "diffusion" else 4096
     CANVAS_STEP = ARGS.canvas_step

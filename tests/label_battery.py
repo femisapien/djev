@@ -87,7 +87,6 @@ def main():
             elif a["type"] == "choice":
                 got, conf = a["choice"], a["confidence"]
             else:
-                levels = list(a["legend"].values())
                 got = max(a["probabilities"], key=a["probabilities"].get)
                 got = a["legend"][got]
                 conf = a["confidence"]
